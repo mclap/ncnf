@@ -6,6 +6,7 @@ Makefile
 config.h
 config.log
 config.status
+autom4te.cache
 libtool
 stamp-h*
 local-configure.sh
