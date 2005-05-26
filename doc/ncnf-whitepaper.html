@@ -1,0 +1,1039 @@
+<HTML>
+<HEAD>
+<TITLE>Netli Configuration White Paper</TITLE>
+</HEAD>
+<STYLE TYPE="text/css">
+BODY {
+	font-family: helvetica
+}
+SPAN.cvsid {
+	font-size: 9pt;
+	color: #404040;
+	font-family: courier
+}
+P {
+	text-align: justify;
+}
+</STYLE>
+<BODY BGCOLOR=white>
+
+<H1>Netli Configuration White Paper</H1>
+<I><FONT COLOR=red>This document was pruned to remove Netli, Inc. proprietary information. Therefore, the clarity of explanations has deteriorated. Next version of this document will contain more coherent explanations and examples. --vlm</FONT></I><BR>
+
+<SPAN CLASS=cvsid>$Id$</SPAN>
+
+<P>
+
+<OL>
+<LI><A HREF=#PREFACE>Preface</A>
+<LI><A HREF=#BASICS>Basics</A>
+<LI><A HREF=#SYNTAX>Configuration file syntax</A>
+	<OL>
+	<LI><A HREF=#ATTRIBUTE>Attribute syntax</A>
+	<LI><A HREF=#ENTITY>Entity syntax</A>
+	<LI><A HREF=#REFERENCE>Reference syntax</A>
+	<LI><A HREF=#INSERTION>Insertion syntax</A>
+	</OL>
+
+<LI><A HREF=#NCNF>Netli Configuration library</A>
+	<OL>
+	<LI><A HREF=#NCNF_API>NCNF C language API</A>
+		<OL>
+		<LI><A HREF=#NCNF_GENERIC_API>NCNF generic API</A>
+			<UL>
+			<LI><A HREF=#ncnf_read>ncnf_read()</A>
+			<LI><A HREF=#ncnf_get_obj>ncnf_get_obj()</A>
+			<LI><A HREF=#ncnf_obj_type>ncnf_obj_type()</A>
+			<LI><A HREF=#ncnf_obj_name>ncnf_obj_name()</A>
+			<LI><A HREF=#ncnf_obj_parent>ncnf_obj_parent()</A>
+			<LI><A HREF=#ncnf_obj_real>ncnf_obj_real()</A>
+			<LI><A HREF=#ncnf_iter_>ncnf_iter_*()</A>
+			<LI><A HREF=#ncnf_get_attr_>ncnf_get_attr_*()</A>
+			<LI><A HREF=#ncnf_walk_tree>ncnf_walk_tree()</A>
+			<LI><A HREF=#ncnf_notificator_attach>ncnf_notificator_attach()</A>
+			<LI><A HREF=#ncnf_lazy_notificator>ncnf_lazy_notificator()</A>
+			<LI><A HREF=#ncnf_udata_attach>ncnf_udata_attach()</A>
+			<LI><A HREF=#ncnf_diff>ncnf_diff()</A>
+			<LI><A HREF=#ncnf_destroy>ncnf_destroy()</A>
+			<LI><A HREF=#debug_stuff>debug stuff</A>
+			</UL>
+		<LI><A HREF=#NCNF_SPECIFIC_API>NCNF extended API</A>
+			<UL>
+			<LI><A HREF=#NCNF_APP_resolve_sysid>NCNF_APP_resolve_sysid()</A>
+			<LI><A HREF=#NCNF_APP_resolve_path>NCNF_APP_resolve_path()</A>
+			<LI><A HREF=#NCNF_APP_construct_id>NCNF_APP_construct_id()</A>
+			<LI><A HREF=#NCNF_APP_initialize_process>NCNF_APP_initialize_process()</A>
+			<LI><A HREF=#NCNF_APP_pidfile_update>NCNF_APP_pidfile_update()</A>
+			<LI><A HREF=#NCNF_APP_pidfile_finishing>NCNF_APP_pidfile_finishing()</A>
+			<LI><A HREF=#NCNF_APP_set_permissions>NCNF_APP_set_permissions()</A>
+			<LI><A HREF=#NCNF_APP_find_objects>NCNF_APP_find_objects()</A>
+			</UL>
+		</OL>
+	</OL>
+
+</OL>
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=PREFACE><H2>1. Preface</H2><P>
+
+One of the most complicated part of the deployment process is a system-wide
+configuration of independent distributed subsystems.
+
+<P>
+This document describes the Netli Configuration framework, including core
+language syntax and C API.
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=BASICS><H2>2. Basics</H2><P>
+
+
+The Netli software suite contains numerous components which are more or
+less tied to each other to achieve efficient, robust, and transparent operation.
+These software components are being run on multiple boxes in multiple
+locations around the world. To maintain integrity, almost all components
+use the single configuration file that precisely describes the whole Netli
+network. In order to allow different software pieces to interoperate, they
+must interpret the configuration file contents the same way.
+
+<P>
+Netli Configuration library (NCNF) is the module for C and Perl applications
+to efficiently read and use the configuration file contents.
+NCNF converts the on-disk configuration file structure to the
+memory-based tree of configuration objects.
+Basic <A HREF=#NCNF_API>NCNF API</A> does not make a distinction
+between different types of configuration objects. However, there are a couple
+of additional functions present to ease the use of certain types
+of configuration objects.
+
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=SYNTAX><H2>3. Configuration file syntax</H2><P>
+
+There are a few atomically independent syntactical statements in the
+configuration file. Namely,
+<I>attributes</I>, <I>entities</I>, <I>references</I> and <I>insertions</I>.
+As mentioned in the previous chapter, although the syntax rules are different
+for these objects, the NCNF will pre-process the configuration file.
+This means application will have only one basic type of configuration object.
+
+<P>
+The configuration structure is hierarchical, allowing separation of logically
+independent component's configuration. Basic naming rules are:
+
+<OL>
+<LI>configuration is case-sensitive;
+<LI>two <I>entities</I> with the smilar names cannot coexist at the same hierarchical level; checking is performed using the case-<B>in</B>sensitive matching, which lowers the possibility of human mistake or misinterpretation of a similar names.
+</OL>
+
+The configuration file may contain comment lines, which are completely ignored
+by the parser. Three types of comments may be used: block comment
+("/*" till "*/", C-like), C++-like ("//" till the end of line), and shell-like
+("#" till the end of line). Nested block comments are explicitly allowed.
+
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=ATTRIBUTE><H3>3.1 Attribute syntax</H3><P>
+
+Application uses configuration as the source of data.
+Data are most frequently contained in the values of attributes.
+
+<P>
+The typical attribute is defined as:
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+type "value";
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Both <I>type</I> and <I>value</I> are user-defined strings. It is up to
+the application to request and use the specific attributes.
+
+<P>
+The BNF definition of an attribute follows.
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+WSP	=	x09-0D		; whitespace character: \t, \n, \v, \f, \r
+LWSP	=	*( WSP )	; contiguous whitespace
+QUOT	=	%x22	; quotation mark \"
+&lt;type&gt;	=	*( %x%x41-5A / %x61-7A / %x30-39 / "_" / "-" / "." )
+			; alphanumeric, underscore, dash and dot.
+&lt;value&gt;	=	*( %x09 / %x20-21 / %x23-FF )
+			; all visible symbols, space and tab, except QUOT.
+			; carriage returns and line feeds are prohibited.
+			; QUOT cannot be escaped at this moment.
+
+&lt;Attribute&gt;	=	&lt;type&gt; LWSP QUOT &lt;value&gt; QUOT LWSP ";"
+				; attribute-name "freeform one-line string";
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+In order to be able to re-use some generic attribute values and not to
+repeat the values throughout the configuration, there is another form
+of attribute defined:
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDT=600><TR><TD><PRE>
+attribute-type = another-attribute-type;
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+This defines that this attribute should take a value from the right-hand
+attribute with type <I>another-attribute-type</I>. NCNF will resolve this
+dependency at the read time, searching for specified right-hand
+attribute at the same configuration tree level and higher levels up to the
+configuration root.
+
+<P>
+Example (order-independent):
+
+<P><TABLE ALIGN=center BORDER=0 BGCOLOR=#fff0f0 WIDTH=600><TR><TD><PRE>
+hostname "www.dot.com";
+server_name = hostname;
+</PRE></TD></TR></TABLE><BR CLEAR=all><P>
+
+There is no distinction between various types of values, like boolean,
+integer or string. All values are transparently accessible from the
+application as strings using generic <A HREF=#NCNF_API>NCNF API</A>.
+Additional API calls are provided for convenience to convert the
+values to the requested type on the fly with proper syntax checking.
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=ENTITY><H3>3.2 Entity syntax</H3><P>
+
+Entity is the compound configuration object containing other
+entities, attributes and all other kinds of configuration objects.
+Entities used to group the attributes related to different application
+and application's subsystems, and keep them visually and logically apart.
+Entities also used to build hierarchical configuration structure.
+
+<P>
+The BNF definition of an entity follows.
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+&lt;Entity&gt;	=	&lt;type&gt; LWSP QUOT &lt;value&gt; QUOT
+			LWSP "{" LWSP
+				*&lt;AnyOtherConfObject&gt;
+			LWSP "}" LWSP [";"]
+			; entity-type "freeform one-line string" { ... };
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Example:
+
+<P><TABLE ALIGN=center BORDER=0 BGCOLOR=#fff0f0 WIDTH=600><TR><TD><PRE>
+type1 "name1" {
+	internal-attribute "foo";
+	type2 "name2" {
+		/* Empty entity */
+	}
+	other-attribute "bar";
+}
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=REFERENCE><H3>3.3 Reference syntax</H3><P>
+
+References are special configuration statements that allow to use
+externally-defined entities in several other places. References will
+be resolved by <A HREF=#NCNF_API>NCNF API</A> upon reading the
+configuration. Resolving the references is the process of searching
+for the correspondent right-hand entities at the same configuration
+tree level and higher levels up to the configuration root.
+
+<P>
+There are two kinds of references: the references and attachments.
+The only difference is the behavior of the entity containing
+the reference in case of configuration reload. Attachments will react
+on changes made in the referenced object and will mark the three
+path up to root object as changed. Plain references will ignore the
+changes made to the referenced object, thus no change notifications
+will be performed.
+
+<P>
+The BNF definition of a reference:
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+&lt;ref-type&gt;	= "ref" / "reference"	; plain reference
+&lt;attach-type&gt;	= "attach"		; attachment
+&lt;ref&gt;		= &lt;ref-type&gt; / &lt;attach-type&gt;
+&lt;Reference&gt;	=
+	&lt;ref&gt; *1(LWSP &lt;type&gt; LWSP QUOT &lt;value&gt; QUOT) LWSP
+		"=" LWSP &lt;type&gt; LWSP QUOT &lt;value&gt; QUOT LWSP ";"
+	/ &lt;ref&gt; LWSP &lt;type&gt; LWSP
+		"=" LWSP &lt;type&gt; LWSP QUOT &lt;value&gt; QUOT LWSP ";"
+	/ &lt;ref&gt; LWSP &lt;type&gt; LWSP QUOT &lt;value&gt; QUOT LWSP
+		"=" LWSP QUOT &lt;value&gt; QUOT LWSP ";"
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Examples of reference usage:
+
+<P><TABLE ALIGN=center BORDER=0 BGCOLOR=#fff0f0 WIDTH=600><TR><TD><PRE>
+some "entity" {
+	ref some "name" = referenced-object "bar";
+	other "entity" {
+		/*
+		 * Simple way to reference the object
+		 * under the same name.
+		 */
+		ref = referenced-object "bar";
+	}
+}
+
+referenced-object "bar" {
+	attribute "internal";
+}
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+The semantics of the left-hand type and value are the following.
+When the reference is used to link to the other object,
+sometimes it is necessary to change the name under which the right-hand
+object is known in the new place. Logically, reference is the inclusion
+of the right-hand entity under a left-hand name.
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=INSERTION><H3>3.3 Insertion syntax</H3><P>
+
+Insertions are special configuration statements that allow the contents
+of some source entity holding the common data to be re-used in several other
+places. Insertions are identical to the textual insertion of the
+source entity's contents to the destination entity which contains the insertion
+statement.
+
+<P>
+There is an advanced form of insertion, named inheritance,
+which allows some data contained in the source entity to be overriden
+by the new data in the destination entity. The insertions will be
+resolved at the read time, searching from the same level of the configuration
+tree and higher levels up to the root of the configuration.
+
+<P>
+The BNF definition of an insertion and inheritance statements:
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+&lt;Insertion&gt;	= insert LWSP &lt;type&gt; LWSP QUOT &lt;value&gt; LWSP ";"
+&lt;Inheritance&gt;	= inherit LWSP &lt;type&gt; LWSP QUOT &lt;value&gt; LWSP ";"
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Examples:
+
+<P><TABLE ALIGN=center BORDER=0 BGCOLOR=#fff0f0 WIDTH=600><TR><TD><PRE>
+source "entity" {
+	ip-addr "0.0.0.0";
+	port "80";
+}
+
+process "one" {
+	listen "socket" {
+		<B>inherit</B> source "entity";
+		/*
+		 * Inherited "0.0.0.0" will be replaced
+		 * by the new ip-addr value.
+		 */
+		ip-addr "192.168.1.1";
+	}
+}
+
+process "another" {
+	listen "socket {
+		<B>insert</B> source "entity";
+		/*
+		 * listen "socket" entity will contain BOTH
+		 * `ip-addr "0.0.0.0";` and `ip-addr "2.3.4.5"`;
+		 * attributes because of insertion semantics!
+		 */
+		ip-addr "2.3.4.5";
+	}
+}
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=NCNF><H2>4. Netli Configuration library</H2><P>
+
+Netli Configuration library (NCNF) provides a generic interface for accessing
+configuration file contents. It parses configuration files, resolves
+insertions and references and builds a configuration tree, which can
+be browsed using several API calls.
+
+Static and dynamic validators are optionally invoked during
+configuration file parsing when configuration contains the "magic attributes".
+
+If present in the configuration file, the following statement
+enables dynamic validation using the validator rules described in the file.
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+_validator-rules "dynamic_rules.vr";
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+If present in the configuration file, the following statement
+enables embedded (hardcoded) validation.
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+_validator-embedded "yes";
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Validators are not designed to be directly accessible from outside the NCNF:
+their API's are not exported to public, and they are only invoked internally.
+
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=NCNF_API><H3>4.1 NCNF C language API</H3><P>
+
+NCNF API contains the generic API and extended API.
+The APIs calls defined in two header files, ncnf.h and ncnf_app.h,
+for generic and extended API, appropriately.
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+#include &lt;ncnf.h&gt;
+#include &lt;ncnf_app.h&gt;
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+The former is optional when the latter is included.
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=NCNF_GENERIC_API><H4>4.1.1 NCNF generic API</H4><P>
+
+
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+typedef struct ncnf_obj_s ncnf_obj;
+
+/*
+ * Parse specified configuration file.
+ * 
+ * When successful, this function returns the pointer to the
+ * root of the configuration objects tree.
+ * Upon error, the function will return NULL and set the errno.
+ * 
+ * The caller of the function is the owner of this objects tree
+ * and should destroy it with ncnf_destroy() eventually.
+ */
+ncnf_obj *<B>ncnf_read</B>(const char *<I>config_filename</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+The <B>ncnf_read()</B> function does the following:
+<OL>
+<LI>Reads the specified configuration file and builds a configuration tree;
+<LI>Checks for semantical errors, reference or insertion loops, and other basic inconsistences;
+<LI>Resolves all insertions and references;
+<LI>Optionally invokes dynamic and embedded validators to check the
+resulting tree against external and hardcoded rules;
+<LI>Returns the resulting tree when every step was successful.
+</OL>
+
+The returned object is the root object of the configuration tree.
+The root object is the same as all other objects except that it
+has no type and value (<B>ncnf_obj_type()</B> and <B>ncnf_obj_value()</B> will
+return NULL).
+
+
+<A NAME=ncnf_get_obj>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Number of styles used to fetch an object or object chain.
+ */
+enum ncnf_get_style {
+  NCNF_FIRST_OBJECT     = 0,    /* Fetch the first matched object */
+  NCNF_FIRST_ATTRIBUTE  = 1,    /* Fetch the first matched attribute */
+  /* Request to return iterator, reentrant, newly allocated object. */
+  NCNF_ITER_OBJECTS     = 2,    /* Get iterator for the group of objects */
+  NCNF_ITER_ATTRIBUTES  = 3,    /* Get iterator for the group of attributes */
+  /* Request to return simple chain, not reentrant and generally unsafe. */
+  NCNF_CHAIN_OBJECTS    = 4,    /* Get the chain of objects */
+  NCNF_CHAIN_ATTRIBUTES = 5,    /* Get the chain of attributes */
+};
+
+/*
+ * Search inside the given object, according to ncnf_get_style.
+ * Optional opt_type and opt_name may be omitted.
+ * 
+ * Return NULL (errno = ESRCH, etc.) if not found.
+ * 
+ * If NCNF_ITER_* specified in ncnf_get_style, the returned
+ * iterator is the special object and should eventually be
+ * disposed by ncnf_destroy().
+ *
+ * If NCNF_CHAIN_* specified in ncnf_get_style, the returned
+ * chain is formed from raw list of found objects, and should
+ * considered as unsafe as the next ncnf_get_obj will probably
+ * break this chain. Not reentrant.
+ * The chain must NOT be deleted after use.
+ */
+ncnf_obj *<B>ncnf_get_obj</B>(ncnf_obj *<I>obj</I>,
+	const char *<I>opt_type</I>, const char *<I>opt_name</I>,
+	enum <I>ncnf_get_style</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+<B>ncnf_get_obj()</B> is the generic function to obtain an entity
+(object) or an attribute out of parent entity. This function may
+return single (first match) or multiple objects. Multiple objects
+may be placed into container (reentrant) or linked together to
+form a chain (faster).
+
+<P>
+When multiple objects are returned in a container, this container must
+be destroyed after use to reclaim memory. When multiple objects
+returned in a chain, it is unsafe to call <B>ncnf_get_obj()</B> again
+during the use of this chain, because this may break the previous chain
+to build a new one.
+
+<P>
+Value returned by this function with <I>ncnf_get_style</I> argument
+equal to NCNF_FIRST_OBJECT or NCNF_FIRST_ATTRIBUTE is the first
+entity or attribute object matching your request, and may be used directly.
+When <I>ncnf_get_style</I> value is different from the above constants,
+the returned object should be considered as opaque and used only as an
+argument to the
+<B>ncnf_iter_rewind()</B>,
+<B>ncnf_iter_next()</B>, or
+<B>ncnf_destroy()</B> (in case of iterator) functions.
+
+
+<A NAME=ncnf_obj_type>
+<A NAME=ncnf_obj_name>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Return object type or name (value) for most objects.
+ * Return NULL if it is the configuration root or an iterator.
+ */
+char *<B>ncnf_obj_type</B>(ncnf_obj *<I>obj</I>);
+char *<B>ncnf_obj_name</B>(ncnf_obj *<I>obj</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+These functions return type and value (name) of the object.
+They may be used against any object, entity or attribute because
+all object are defined using that <I>type "value"</I> naming.
+
+
+<A NAME=ncnf_obj_parent>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Obtain the object's parent object.
+ * Return NULL if no parent or obj == NULL.
+ */
+ncnf_obj *<B>ncnf_obj_parent</B>(ncnf_obj *<I>obj</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+<B>ncnf_obj_parent()</B> may be used to walk tree from the leaf to the root.
+
+<A NAME=ncnf_obj_real>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Resolve the real object out of the reference.
+ * If it is not a reference, return the same object.
+ */
+ncnf_obj *<B>ncnf_obj_real</B>(ncnf_obj *<I>ref</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+In fact, there are not so many cases where you really want the
+pointer to the configuration objects itself instead of pointer
+to the configuration reference. One case might be if
+one want to compare two references whether they are actually
+point to the same object. Basically, there is no distinction between
+references to objects and objects themselves.
+
+
+<A NAME=ncnf_iter_>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Functions to deal with iterators and chains returned by
+ * ncnf_get_obj() with NCNF_ITER_* and NCNF_CHAIN_* styles.
+ */
+
+/* Get the next object in the iterator or chain. NULL if nothing is left. */
+ncnf_obj *<B>ncnf_iter_next</B>(ncnf_obj *<I>iter_or_chain</I>);
+
+/* Rewind the iterator or chain position back to the start */
+void <B>ncnf_iter_rewind</B>(ncnf_obj *<I>iter_or_chain</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Functions to deal with iterators and chains returned by
+<B>ncnf_get_obj()</B>. Self-explanatory.
+
+<P>
+Example:
+
+<P><TABLE ALIGN=center BORDER=0 BGCOLOR=#fff0f0 WIDTH=600><TR><TD><PRE>
+void func(ncnf_obj *box) {
+	ncnf_obj *proc_iter;
+	ncnf_obj *process;
+
+	proc_iter = ncnf_get_obj(box,
+		"process",
+		NULL,	/* Process with any name */
+		<B>NCNF_ITER_OBJECTS</B>);
+
+	/* Scan through the process */
+	while((process = <B>ncnf_iter_next</B>(proc_iter))) {
+		printf("Found %s \"%s\"\n",
+			ncnf_obj_type(process),
+			ncnf_obj_name(process)
+		);
+	}
+
+	/* Rewind the iterator */
+	<B>ncnf_iter_rewind</B>(proc_iter);
+
+	/* Scan again */
+	while((process = ncnf_iter_next(proc_iter)))
+		;
+
+	/* Destroy the iterator */
+	ncnf_obj_destroy(proc_iter);
+}
+</PRE></TD></TR></TABLE><BR CLEAR=all><P>
+
+
+<A NAME=ncnf_get_attr_>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Search inside the given object for the specified attribute.
+ */
+
+/* Return attribute value or NULL (errno = ESRCH/whatever) if not found. */
+char *<B>ncnf_get_attr</B>(ncnf_obj *obj, const char *opt_type);
+
+/*
+ * Other function return 0 if found and placed in *r,
+ * or -1 (errno = ESRCH/whatever) if attribute not found
+ * or conversion error (see atoi(3)/atof(3), and inet_aton(3) functions
+ * for specific error codes).
+ * On error, return value (*r) is undefined.
+ * NOTE: The <I>ncnf_get_attr_int()</I> function is specifically enhanced to process
+ * boolean values, like "on", "off", "yes", "no", "true", "false".
+ */
+int <B>ncnf_get_attr_int</B>(ncnf_obj *<I>obj</I>, const char *<I>type</I>, int *<I>r</I>);
+int <B>ncnf_get_attr_double</B>(ncnf_obj *<I>obj</I>, const char *<I>type</I>, double *<I>r</I>);
+int <B>ncnf_get_attr_ip</B>(ncnf_obj *<I>obj</I>, const char *<I>type</I>, struct in_addr *<I>r</I>);
+int <B>ncnf_get_attr_ipport</B>(ncnf_obj *<I>obj</I>, const char *<I>type</I>,
+	struct in_addr *<I>rip</I>, unsigned short *<I>rhport</I> /* Host order */);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Values of the attributes are stored internally as the strings.
+<B>ncnf_get_attr()</B> is essentially the wrapper around the calls to
+<B>ncnf_get_obj(</B>..., NCNF_FIRST_ATTRIBUTE<B>)</B> to obtain attribute
+and then <B>ncnf_obj_name()</B> to obtain value.
+Other <B>ncnf_get_attr_*()</B> functions are conversion wrappers around
+<B>ncnf_get_attr()</B> with proper syntax checks according to
+the requested type.
+
+
+<A NAME=ncnf_walk_tree>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+int <B>ncnf_walk_tree</B>(ncnf_obj *<I>tree</I>,
+        int <I>(*callback)(ncnf_obj *, void *key)</I>,
+        void *<I>key</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+This call used to iteratively walk the configuration,
+starting from root and recursively going down the tree.
+Callback function is invoked for every found object.
+If callback returns with non-zero value, walking
+stops and this value becomes the return value of <B>ncnf_walk_tree()</B>.
+A <I>key</I> passed to the <B>ncnf_walk_tree()</B> function will be
+blindly passed to the callback as an argument.
+
+
+<A NAME=ncnf_notificator_attach>
+<A NAME=ncnf_lazy_notificator>
+<A NAME=ncnf_udata_attach>
+<A NAME=ncnf_udata_get>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+enum ncnf_notify_event {
+  NCNF_UDATA_ATTACH     = 0,    /* Invoked after ncnf_udata_attach() */
+  NCNF_UDATA_DETACH     = 1,    /* Invoked in ncnf_udata_detach(NULL) */
+  NCNF_NOTIF_ATTACH     = 2,    /* Invoked after ncnf_callback_attach() */
+  NCNF_NOTIF_DETACH     = 3,    /* Invoked in ncnf_callback_detach(NULL) */
+  NCNF_OBJ_ADD          = 4,    /* Invoked when object changed */
+  NCNF_OBJ_CHANGE       = 5,    /* Invoked when object changed */
+  NCNF_OBJ_DESTROY      = 6,    /* Invoked when object gets destroyed */
+};
+
+/*
+ * Attach notification callback to the specified object.
+ * 
+ * If notify is NULL, old function is detached and will be invoked
+ * will be invoked with NCNF_NOTIF_DETACH event. Otherwise, old function
+ * (if any) will be detached and new function attached, and two callbacks
+ * invoked with NCNF_NOTIF_DETACH and NCNF_NOTIF_ATTACH events.
+ * 
+ * The user data is completely opaque for the library, and only pointer
+ * matters. The caller should arrange appropriate notificators to
+ * be sure the data is not lost during configuration tree merges 
+ * (ncnf_diff()) or deletions (ncnf_destroy()).
+ * 
+ * Function will fail with -1/EINVAL when obj is NULL.
+ * Function will fail with -1/EPERM if notificator function returns
+ * -1 on NCNF_NOTIF_ATTACH or if the old one returns -1 on NCNF_NOTIF_DETACH.
+ */
+int <B>ncnf_notificator_attach</B>(ncnf_obj *<I>obj</I>,
+	int <I>(*notify)(ncnf_obj *obj, enum ncnf_notify_event event, void *)</I>,
+	void *<I>key</I>);
+
+/*
+ * Lazy notification is for objects types which are not yet here,
+ * but expected to arrive (maybe, at the time of ncnf_diff()).
+ * 
+ * Function will fail with -1/EINVAL when obj is NULL.
+ * Function will fail with -1/EPERM if notificator function returns
+ * -1 on NCNF_NOTIF_ATTACH or if the old one returns -1 on NCNF_NOTIF_DETACH.
+ */
+int <B>ncnf_lazy_notificator</B>(ncnf_obj *<I>parent</I>, char *<I>type_expecting</I>,
+        int <I>(*notify)(ncnf_obj *obj, enum ncnf_notify_event, void *)</I>,
+        void *<I>key</I>);
+
+/*
+ * Attach new user data.
+ * If user_data is NULL, data is detached and notification function
+ * will be invoked with NCNF_UDATA_DETACH event. Otherwise, old data
+ * (if any) will be detached and new data attached, and two callbacks
+ * invoked with NCNF_UDATA_DETACH and NCNF_UDATA_ATTACH events.
+ * 
+ * Function will fail with -1/EINVAL when obj is NULL.
+ * Function will fail with -1/EPERM if notificator function returns
+ * -1 on NCNF_UDATA_DETACH (for old data) or NCNF_UDATA_ATTACH.
+ */
+int <B>ncnf_udata_attach</B>(ncnf_obj *<I>obj</I>, void *<I>new_user_data</I>);
+
+/* Get the attached user data */
+void *ncnf_udata_get(ncnf_obj *<I>obj</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Many applications require an ability to be re-configured on the fly.
+In order to provide applications with efficient and easy-to-use instrument
+to support on-the-fly reloads (see <B>ncnf_diff()</B>), the notificators and user data attachment
+API was developed.
+
+<P>
+Every configuration object may have some arbitrary user data attached to it.
+<B>ncnf_udata_attach()</B> and <B>ncnf_udata_get()</B> are the calls
+to support this kind of operation. There is no ncnf_udata_detach call because
+it is the same as calling <B>ncnf_udata_attach()</B>
+with NULL as the <I>new_user_data</I> argument.
+
+<P>
+To be able to detach (and dispose) user data when configuration file changes
+so the object is no longer exists, and be able to react on changes
+inside configuration object, a user-defined notificator function may
+be attached to the object. Notificator function receives serveral types
+of events, which are distinguished by <I>event</I> argument to the
+notificator callback.
+
+<P>
+Notificator callback is installed using the <B>ncnf_notificator_attach()</B>.
+Inside the call the old notificator (if any) receives the NCNF_NOTIF_DETACH
+event, new notificator callback is installed to the object and receives
+the NCNF_NOTIF_ATTACH event.
+So, the very first event of the notificator
+is NCNF_NOTIF_ATTACH and the very last one (just before installing a new
+one) is NCNF_NOTIF_DETACH.
+These events on installing and disposing
+notificators are the chance for notificators to initialize or destroy
+some structures. It is also the chance to the old notificator to
+<B>resist</B> the installing the new notificator by returning non-zero
+value. This will prevent new notificator callback to be installed and
+<B>ncnf_notificator_attach()</B> call will fail,
+returning -1 with errno=EPERM.
+
+<P>
+Callback will be invoked with NCNF_OBJ_CHANGE or NCNF_OBJ_DESTROY event
+if the object was changed (contents of the configuration entity are changed)
+or deleted from the configuration. NCNF_OBJ_CHANGE event will <B>not</B>
+occur if object is an attribute. Instead, a NCNF_OBJ_DESTROY event will be
+transferred to this attribute, and NCNF_OBJ_ADD will be transferred to the
+appropriate lazy notificator, indicating addition of another attribute.
+
+<P>
+When user data is being attached or detached to/from the object, a notificator
+is invoked with NCNF_UDATA_ATTACH or NCNF_UDATA_DETACH event.
+This is the chance to resist to attaching the new user data or detaching
+the old one: notificator should return a zero value for all operations
+to succeed.
+
+<P>
+<B>ncnf_lazy_notificator()</B> is used to install a <I>lazy notificator</I>,
+that is the notificator <B>to be</B> invoked when an object of interest
+is being added to the entity.
+In case of configuration reloading, the new objects of interest may be added
+to some entity. The lazy notificator will catch them automatically
+at the time of <B>ncnf_diff()</B>. The notificator callback should be
+prepared to receive events on <B>different</B> objects. The conventional
+NCNF_NOTIF_ATTACH and NCNF_NOTIF_DETACH events will be made using the
+specified <I>parent</I> argument as the <B>obj</B> argument to the callback.
+When a new object of interest arrives, this object will be used as
+an argument to the callback with NCNF_OBJ_ADD event.
+It is up to application programmer to install a new notificator
+on the arrived object. If the notificator is not installed, there
+is the possibility that this callback will be invoked several times
+during configuration reload, and also will be invoked every time
+the new reload is made. Strictly speaking, the logic uses the absense
+of a notificator on an object of interest as the signal to invoke a
+correspondent lazy callback.
+
+
+<A NAME=ncnf_diff>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Make the old configuration tree look like the reference tree.
+ * 0 if OK, -1 if something wrong.
+ */
+int <B>ncnf_diff</B>(ncnf_obj *<I>old_root</I>, ncnf_obj *<I>reference_root</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+This call merges the difference between the old configuration tree and
+the reference tree back into the old tree.
+The standard way for application to make the
+old configuration tree to be identical with the reference tree is
+to read the new configuration file (<B>ncnf_read()</B>) then merge
+the newly obtained root with the old one (<B>ncnf_diff()</B>), then
+destroy the <B>new</B> tree to reclaim memory used by this reference tree.
+<B>ncnf_diff()</B> call guarantees to keep the old tree intact if there are
+problems merging the trees (it returns -1 in that case).
+<B>ncnf_diff()</B> call guarantees that the modified (old) tree will be
+undistinguishable from the reference tree.
+
+<P>
+All notificators are invoked as the last stage of operation.
+At the first pass, all deleted and changed objects will receive
+NCNF_OBJ_DESTROY and NCNF_OBJ_CHANGE events.
+At the second pass, the lazy notificators logic will check the changed objects
+against the newly added objects of interest, and invoke the callbacks
+with these objects and NCNF_OBJ_ADD event.
+In each of these passes, callbacks are invoked starting from root
+and going down the tree.
+
+<A NAME=ncnf_destroy>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Destroy the whole object tree.
+ */
+void ncnf_destroy(ncnf_obj *obj);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+This function destroys the object and its descendants. In case of iterator,
+this call destroys only the iterator object itself.
+<I>Do not use this call on chains.</I>
+
+
+<A NAME=debug_stuff>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * This function invokes to print debug messages.
+ * Default is just to print them to stderr.
+ */
+extern void (*<B>ncnf_debug_print_function</B>)(int <I>is_critical</I>, const char *<I>fmt</I>, va_list <I>ap</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+For applications that use non-standard (stderr) logging facilities, this
+function pointer may be overriden to redirect messages internally generated
+by the NCNF library to a convenient logging destination.
+By default, this pointer refers to the function that prints the debug message
+to the <I>stderr</I>.
+
+
+<P>[<A HREF=#>Contents...</A>]
+<A NAME=NCNF_SPECIFIC_API><H4>4.1.2 NCNF extended API</H4><P>
+
+<A NAME=NCNF_APP_resolve_sysid>
+<A NAME=NCNF_APP_resolve_path>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Fetch the process configuration entity from the configuration tree
+ * by the given sysid or path inside the configuration tree.
+ * If sysid, then checks sysid for validity (length).
+ * 
+ * Examples:
+ *      NCNF_APP_resolve_sysid(ncnf_root, "process@box@ploc");
+ *      NCNF_APP_resolve_path(ncnf_root, "ploc/box/process");
+ *
+ */
+ncnf_obj *<B>NCNF_APP_resolve_sysid</B>(ncnf_obj *<I>root</I>, const char *<I>sysid</I>);
+ncnf_obj *<B>NCNF_APP_resolve_path</B>(ncnf_obj *<I>root</I>, const char *<I>config_path</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+These functions are used by Netli applications to find their configuration
+entities inside the configuration tree. The values to this functions are
+normally specified in the command line with -S or -P keys.
+The only difference is the order of arguments (lowest level first
+or highest level first) and the separator between entity names.
+These entity names will be used iteratively to go to the next level of
+the tree. No checks are made against entity types, only values are
+relevant.
+
+
+<A NAME=NCNF_APP_construct_id>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Construct an identifier (entity2@entity1@entity...) of a given ncnf object.
+ */
+bstr_t <B>NCNF_APP_construct_id</B>(ncnf_obj *<I>process</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Sometimes it is essential to build a unique identifier the given NCNF object.
+This function provides a convenient way to do it.
+
+<A NAME=NCNF_APP_initialize_process>
+<A NAME=NCNF_APP_pidfile_update>
+<A NAME=NCNF_APP_pidfile_finishing>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * The function does some basic initializations of the process environment:
+ * Netli logging, pid file, etc.
+ * Stores the open pid file descriptor in the static internal structures.
+ * Installs a callback to catch changes of necessary attributes.
+ *
+ * process pointer may be obtained by using something like that:
+ * ncnf_obj *process = NCNF_APP_resolve_path(root, "ploc/box/process");
+ * Return -1 if initialization failed by some reason.
+ */
+int <B>NCNF_APP_initialize_process</B>(ncnf_obj *<I>process</I>);
+
+/*
+ * Override this function if you want to get better control over pid file
+ * open failures. Right now it does exit(EX_TEMPFAIL) if there are problems
+ * opening the pid file for the first time. (Second time may occur after
+ * ncnf_diff() if "pidfile" attribute changed).
+ */
+extern void (*NCNF_APP_pidfile_open_failed_callback)(char *filename,
+        int is_firsttime);
+
+/*
+ * Update pid files with the new pid value (i.e., after fork(2)/daemon(3)).
+ */
+int <B>NCNF_APP_pidfile_update</B>(ncnf_obj *<I>process</I>);
+
+/*
+ * Update pid files with the notice about process being terminated.
+ */
+int <B>NCNF_APP_pidfile_finishing</B>(ncnf_obj *<I>process</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+When the process entity is fetched from the configuration tree
+using the <B>NCNF_APP_resolve_*()</B> functions, the
+<B>NCNF_APP_initialize_process()</B> call provide the fast
+way to implement a process initialization according to the process
+configuration, i.e., initialize netli logging, create and lock the pid file,
+etc. In case of pid file, more caution should
+be used, that's why NCNF API provide the way for application
+to tell that the essential changes happened with the process.
+Invoking <B>NCNF_APP_pidfile_update()</B> will update the contents
+of pid files opened by <B>NCNF_APP_initialize_process()</B>.
+The <I>NCNF_APP_pidfile_open_failed_callback</I> function pointer
+may be overriden to obtain better control of error behavior in case
+of pid file open failures, for example, to gracefully abort the
+processing instead of aborting abruptly.
+
+
+<A NAME=NCNF_APP_set_permissions>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/*
+ * Set uid, gid, etc, according to the process
+ * configuration.
+ */
+enum ncnf_app_perm_set {
+        NAPS_ALL        = -1,
+        NAPS_SETGID     = (1 << 0),
+        NAPS_SETUID     = (1 << 1),
+};
+int <B>NCNF_APP_set_permissions</B>(ncnf_obj *<I>process</I>, enum ncnf_app_perm_set <I>set</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+Although basic process environment initialization is performed inside
+<B>NCNF_APP_initialize_process()</B>, there are couple of tasks that
+should be performed after the basic initialization. These tasks can not
+be integrated into <B>NCNF_APP_initialize_process()</B> for some reasons.
+(For example, initialization of some system resources should be done
+after logging is initialized, to be able to throw critical error.
+Logging should be initialized after setting the correct permissions
+and chroot'ing. But if the initialization of some system resources require
+privileged mode (shared memory, low-port sockets, etc), we could not let
+<B>NCNF_APP_initialize_process()</B> to drop these privileges. That is
+why explicit <B>NCNF_APP_set_permissions()</B> is needed.)
+
+<A NAME=NCNF_APP_find_objects>
+<P><TABLE BORDER=0 BGCOLOR=#f0f0f0 WIDTH=600><TR><TD><PRE>
+/***********************************************************************
+ * Universal function to retrieve a list of configuration objects
+ * at the specified configuration tree level.
+ * 
+ * Parameters are:
+ *
+ * start_level: object we're willing to start at (root or any other object);
+ * types_tree:  path of types which should be traversed to find an object;
+ * opt_filter:  user-defined function to filter a specified level;
+ * opt_key:     user-defined opaque data to be passed into filter.
+ * 
+ * opt_filter() may return the following values:
+ *  0:  proceed with this object (level)
+ * -1:  hard error found, stop completely and return NULL (errno should be set).
+ *any:  don't proceed with this object (level)
+ * 
+ * EXAMPLE:
+ *
+ * int
+ * func(ncnf_obj *nloc) {
+ *      ncnf_obj *iter;
+ *      iter = NCNF_APP_find_objects(nloc, "ploc/box/process/si",
+ *              filter, NULL);
+ *      if(iter == NULL) {
+ *              if(errno == ESRCH)
+ *                      return 0;
+ *              return -1;
+ *      }
+ *      // Do something with this iterator
+ *      ncnf_destroy(iter);
+ *      return 0;
+ * }
+ * int 
+ * filter(ncnf_obj *obj, void *key) {
+ *      if(strcmp(ncnf_obj_type(obj), "process") == 0) {
+ *              char *process_type = ncnf_get_attr(obj, "process-type");
+ *              if(strcmp(process_type, "proxy"))
+ *                      // Skip not proxies
+ *                      return 1;
+ *      }
+ *      return 0;
+ * }
+ * 
+ *
+ * RETURN VALUES:
+ *
+ * Upon successful invocation, function will return an iterator
+ * of found objects. You should destroy this iterator eventually
+ * with ncnf_destroy();
+ * 
+ * ERRORS (when returned pointer is NULL):
+ * 
+ * [ESRCH]:     No objects found.
+ * [ENOMEM]:    Memory allocation failed.
+ * [EINVAL]:    Mandatory parameter missing or inappropriate object class.
+ * other error codes may be returned if opt_filter() returns -1 and sets
+ * its own error code.
+ */
+
+ncnf_obj *<B>NCNF_APP_find_objects</B>(ncnf_obj *<I>start_level</I>,
+	char *<I>types_tree</I>,
+	int <I>(*opt_filter)(ncnf_obj *current_obj, void *key)</I>,
+	void *<I>opt_key</I>);
+</PRE></TD></TR></TABLE><BR CLEAR=ALL><P>
+
+This function is used to avoid the nested <B>ncnf_get_obj()</B> in applications
+to find certain objects at a deep level of configuration. Self-explanatory.
+
+
+<HR>
+
+<!--
+
+Note for editor:
+
+	Please use appropriate examples above, if you'd like
+	to use tables. Examples should be presented in a
+	centered pink tables, standard practices and options
+	should be presented in a left-aligned gray tables.
+	Please do not invent a new form of presenting material
+	unless absolutely necessary, use already defined patterns.
+
+-->
+
+[...document in progress...]
+
+<HR>
+<SPAN CLASS=cvsid>$Id$</SPAN>
+
+</BODY>
+</HTML>

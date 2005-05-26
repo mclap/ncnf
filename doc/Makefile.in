@@ -156,8 +156,14 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 docsdir = $(datadir)/doc/ncnf
-docs_DATA = $(srcdir)/*.txt
-EXTRA_DIST = $(srcdir)/*.txt
+docs_DATA = \
+		$(srcdir)/*.html	\
+		$(srcdir)/*.txt
+
+EXTRA_DIST = \
+		$(srcdir)/*.html	\
+		$(srcdir)/*.txt
+
 CLEANFILES = *.*~
 all: all-am
 
