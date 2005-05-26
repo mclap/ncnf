@@ -1,0 +1,108 @@
+
+0. QUICK REFERENCE
+
+#
+# type <type_name> {regex <value>|range <min>:<max>}
+#
+# entity {<type>|ROOT} [<name>]
+# 	{mandatory|optional} {single|multiple} \
+# 	{attribute|entity|reference|attach} {<attrname>|*} \
+# 	[{range <x>:<y>|regex <regex>}|type <type_name>]
+#
+
+
+1. ABSTRACT
+
+Configuration file eventually should be validated using some form
+of simple language. This document describes this language and
+validation semantics.
+
+
+2. SYNTAX
+
+File with validation rules contains language statements separated by
+new line. Comments are the same as in shell: sharp symbols till the
+end of line.
+
+	# this is the comment
+
+Among other techniques, validator uses ranges, regular expressions and
+maybe other techniques to evaluate configuration values. Some expressions
+may be used many times. To not to repeat them every time, shortcuts may be
+defined using keyword "type".
+
+	type <type_name> <type> [<r_value>]
+
+Where types are:
+	regex:	POSIX regular expression, possible wrapped with /EXPR/e
+	range:	<min>:<max> floating-point range of argument
+	ip:	ip address (does not require an argument)
+	ip_mask:	ip/mask (does not require an argument)
+	ip_masklen:	ip/masklen (does not require an argument)
+	ip_port:	ip:mask (does not require an argument)
+
+	Example:
+
+	type bool regex /0|1|on|off|yes|no|true|false/e
+	type http_port range 80:1024
+	type myNet ip_masklen
+
+
+Validator applies different sets of validation rules to different
+objects (entities with curly braces containing other entities)
+in the configuration file. To define the entity for which the
+rules will be applied, a keyword "entity" should be used.
+
+	entity process
+	entity service dnsproxy
+
+Name ("dnsproxy") may be used to obtain better granularity.
+A special name ROOT may be used to name the very top entity.
+
+Everything that is not "type" or "entity" will be treated as
+validation rule. A rule has the following syntax:
+
+	{mandatory|optional} {single|multiple} \
+	{attribute|entity|reference|attach} \
+		{<attrname>|*} [type <type_name>]
+
+Meaning of keywords:
+	mandatory:   parameter must be specified explicitly
+	optional:    parameter may be specified, but not required
+	single:      parameter may be contained only once
+	multiple:    many instances of the parameter are allowed
+	attribute:   parameter is a plain attribute
+	entity:      parameter is an object (including references)
+	reference:   parameter is a reference (including attachments)
+	attach:      parameter is a dependent reference (attach)
+	<attrname>:  name of the parameter
+
+
+If an entity contain NO rules, it effectively means that the rules allow
+everything. Otherwise, default is to not to allow any unmentioned
+attributes. Attribute name "*" (without quotes) could be used in rule
+to match any attribute. It may be required to disable handling of unknown
+values when the contents of the configuration entity are not stabilized.
+
+
+Appendix A. EXAMPLE
+
+type bool regex /0|1|on|off|yes|no|true|false/e
+
+entity service
+	mandatory multiple entity properties
+	optional single entity blah
+
+entity properties
+	mandatory multiple attribute port range 1:65535
+	optional multiple attribute this
+	optional multiple attribute systemwide
+	optional single entity place_here
+
+entity props
+	mandatory multiple attribute port range 1:65535
+	optional single attribute systemwide regex /imported|exported/e
+	optional single attribute flag type bool
+	optional single attribute systemwide
+	optional single entity place_here
+

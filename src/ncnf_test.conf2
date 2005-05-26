@@ -1,0 +1,124 @@
+
+/*
+ * Special attribute to employ post-validation.
+ */
+_validator-rules "ncnf_test.vr";
+_validator-embedded "yes";
+
+simple "attribute";
+
+service "type" {
+
+	ref = service "type";
+
+	properties "new" {
+		_validator-entity "props";
+		port "90";
+		inherit should "resolve";
+	}
+
+	properties "this2" {
+		port "81";
+		inherit props "systemwide-defaults";
+	}
+
+	ref blah = should "resolve";
+}
+
+
+props "systemwide-defaults" {
+	_validator-entity "props";
+	port "80";
+	port "85";
+	systemwide "imported";
+	ref place_here = should "resolve";
+	resolved "ok";
+}
+
+should "resolve" {
+	resolved "ok";
+}
+
+origin-server "dos" {
+}
+
+customer "cnn" {
+
+	domain "www.CNN.com." {
+		ip-addr "1.200.3.3";
+		ref = origin-server "dos";
+	}
+
+	domain ".cnn.nET" {
+		ip-addr "1.200.5.5";
+		ref = origin-server "dos";
+	}
+
+}
+
+customer "yahoo" {
+
+	domain ".yahOo.com." {
+		ip-addr "1.1.1.1";
+		ref = origin-server "dos";
+	}
+
+}
+
+customer "default" {
+
+	domain "." {
+		ip-addr "0.0.0.0";
+		ref = origin-server "dos";
+	}
+
+}
+
+nloc "a-nloc" {
+	ip-addr "1.2.3.4";
+	attach = ploc "a-ploc";
+	_validator-policy-5-require-ps "0";
+}
+
+ploc "a-ploc" {
+
+        box "b1-a-ploc" {
+
+                iface "eth0" {
+                        ip-addr "1.2.3.4";
+                }
+
+                iface "aa" {
+                        ip-addr "127.0.0.1";
+                }
+
+                process "a-" {
+                        process-type "a-";
+
+                        si "a-b1-a-http" {
+                                inherit service "http";
+                                ip-addr "1.2.3.4";
+                        }
+
+                }
+	}
+}
+
+service "http" {
+        attach = service "http";
+        ip-addr "0.0.0.0";
+        port "80";
+}
+
+/*
+ * Testing references.
+ */
+
+referenced-entity "B-entity" {
+	port "81";
+}
+
+reference-holder "holder" {
+        ref abstract "entity" = referenced-entity "B-entity";
+}
+

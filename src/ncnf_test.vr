@@ -1,0 +1,35 @@
+
+#
+# See doc/ncnf-validator-rules.txt
+#
+
+
+type bool regex /0|1|on|off|yes|no|true|false/e
+type ip_masklen ip_masklen
+
+
+entity service
+	mandatory single reference service
+	optional multiple entity properties
+	optional single entity blah
+	optional single attribute ip-addr
+	optional single attribute port
+
+entity properties
+	optional single attribute _validator-entity
+	optional single attribute ipaddr type ip_masklen
+	mandatory single attribute resolved
+
+entity props
+	mandatory multiple attribute port range 1:65535
+	mandatory single attribute _validator-entity
+	optional single attribute systemwide regex /imported|exported/e
+	optional single attribute flag type bool
+	optional single attribute systemwide
+	optional single entity place_here
+	mandatory single attribute resolved regex s/fail/FAIL/
+	mandatory single attribute resolved regex s/ok/OK/
+
+entity should resolve
+	mandatory single attribute resolved regex s/fail/FAIL/
+	mandatory single attribute resolved regex s/ok/OK/

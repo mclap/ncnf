@@ -1,0 +1,63 @@
+AC_PREREQ(2.53)
+AC_INIT(src/ncnf.h)
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(ncnf, 3.0.1)
+AM_MAINTAINER_MODE
+
+NCNF_VERSION="3.0.1"
+export NCNF_VERSION
+AC_SUBST(NCNF_VERSION)
+
+PATH=${PATH}:/usr/ucb:/usr/ccs/bin
+export PATH
+
+dnl Default paths for libraries
+LDFLAGS="$LDFLAGS -L${ac_default_prefix}/lib"
+CFLAGS="$CFLAGS -I${ac_default_prefix}/include"
+CPPFLAGS="$CPPFLAGS -I${ac_default_prefix}/include"
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+AC_PROG_YACC
+AM_PROG_LEX
+AM_PROG_LIBTOOL
+
+dnl libstrfunc is necessary for advanced validation features
+dnl and query language support (NCQL).
+AC_CHECK_LIB(strfunc, sed_compile,
+	[with_libstrfunc="yes"; LIBS="-lstrfunc"],
+	[
+	with_libstrfunc="no"
+	echo =================================================================
+	echo Libstrfunc library is not found...
+	echo NCQL and regular expression based validation will be unavailable.
+	echo Check out http://sourceforge.net/projects/libstrfunc
+	echo =================================================================
+	sleep 2
+	])
+if test "$with_libstrfunc" = "yes"; then
+	AC_DEFINE(HAVE_LIBSTRFUNC, 1, [Libstrfunc library is present])
+fi
+AM_CONDITIONAL(LIBSTRFUNC, test "$with_libstrfunc" = "yes")
+
+dnl Checks for header files.
+AC_HEADER_STDC
+
+AC_CHECK_HEADERS(sysexits.h errno.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AC_C_BIGENDIAN
+
+AC_SUBST(ALL_STATIC)
+
+AC_SUBST(LDFLAGS)
+AC_SUBST(CFLAGS)
+AC_SUBST(CPPFLAGS)
+
+AC_OUTPUT(Makefile src/Makefile doc/Makefile)

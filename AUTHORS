@@ -1,0 +1,14 @@
+Originally, this library is a truly collective effort by the members of
+the Netli Inc. team, including, but not limited to (in order of participation):
+
+Lev Walkin		vlm@		(original concept and implementation)
+Sasha Kupriyanov	askuper@	(original concept and integration)
+Suresh Yanamadala	surra@		(extensions)
+Adam Grove		grove@		(created order from chaos)
+Dmitry Tweritin		snaky@		(domain handling)
+Joe Rouvier		joe@		(extensions)
+Igor Sviridov		sia@		(validator, extensions)
+Martin (KaFai) Lau	kafai@		(extensions)
+Dmitry Kohmanyuk	dk@		(NCQL, extensions)
+
+All the deficiencies, including code bloat, are all mine -- vlm.
