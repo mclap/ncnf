@@ -2,4 +2,24 @@
 Netli Configuration library
 ===========================
 
+SYNTAX
+======
+
+	/*
+	 * The following snippet displays basic NCNF syntax.
+	 * To learn more about references and inheritance,
+	 * please check out the documentation in ./doc
+	 */
+	top-level-attribute "value";	// A simple attribute
+	entity "name" {			// A compound entity
+		attribute1 "value1";
+		inner-entity "inner-name" {
+			# other members
+		}
+		/* C-like of /* nested */ comments */
+	}
+
+
+OTHER
+=====
 	1. Check out the ./doc directory for additional documentation.
