@@ -3,3 +3,6 @@
 .deps
 .libs
 Makefile
+lt-*
+check_*
+ncnf-validator
