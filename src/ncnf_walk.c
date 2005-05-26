@@ -140,7 +140,7 @@ retry:
 
 
 char *
-_ncnf_get_attr(struct ncnf_obj_s *obj, char *type) {
+_ncnf_get_attr(struct ncnf_obj_s *obj, const char *type) {
 	struct ncnf_obj_s *found;
 
 	if(obj->obj_class == NOBJ_ATTRIBUTE)

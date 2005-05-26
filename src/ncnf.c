@@ -508,7 +508,7 @@ ncnf_obj_name(ncnf_obj *objp) {
  */
 
 char *
-ncnf_get_attr(ncnf_obj *objp, char *opt_type) {
+ncnf_get_attr(ncnf_obj *objp, const char *opt_type) {
 	struct ncnf_obj_s *obj = objp;
 
 	if(obj == NULL) {
@@ -523,7 +523,7 @@ ncnf_get_attr(ncnf_obj *objp, char *opt_type) {
 }
 
 int
-ncnf_get_attr_int(ncnf_obj *obj, char *type, int *r) {
+ncnf_get_attr_int(ncnf_obj *obj, const char *type, int *r) {
 	char *s;
 
 	if(type == NULL || r == NULL) {
@@ -557,7 +557,7 @@ ncnf_get_attr_int(ncnf_obj *obj, char *type, int *r) {
 }
 
 long
-ncnf_get_attr_long(ncnf_obj *obj, char *type, long *r) {
+ncnf_get_attr_long(ncnf_obj *obj, const char *type, long *r) {
 	char *s;
 
 	if(type == NULL || r == NULL) {
@@ -577,7 +577,7 @@ ncnf_get_attr_long(ncnf_obj *obj, char *type, long *r) {
 }
 
 int
-ncnf_get_attr_double(ncnf_obj *obj, char *type, double *r) {
+ncnf_get_attr_double(ncnf_obj *obj, const char *type, double *r) {
 	char *s;
 
 	if(type == NULL || r == NULL) {
@@ -595,7 +595,7 @@ ncnf_get_attr_double(ncnf_obj *obj, char *type, double *r) {
 }
 
 int
-ncnf_get_attr_ip(ncnf_obj *obj, char *type, struct in_addr *r) {
+ncnf_get_attr_ip(ncnf_obj *obj, const char *type, struct in_addr *r) {
 	char *s;
 
 	if(type == NULL || r == NULL) {
@@ -615,7 +615,7 @@ ncnf_get_attr_ip(ncnf_obj *obj, char *type, struct in_addr *r) {
 
 
 int
-ncnf_get_attr_ipport(ncnf_obj *obj, char *type, struct in_addr *rip, unsigned short *rhport) {
+ncnf_get_attr_ipport(ncnf_obj *obj, const char *type, struct in_addr *rip, unsigned short *rhport) {
 	char *s;
 	char *port;
 	int ret;

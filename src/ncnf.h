@@ -125,7 +125,7 @@ void ncnf_iter_rewind(ncnf_obj *iter_or_chain);
  */
 
 /* Return attribute value or NULL (errno = ESRCH/whatever) if not found. */
-char *ncnf_get_attr(ncnf_obj *obj, char *opt_type);
+char *ncnf_get_attr(ncnf_obj *obj, const char *opt_type);
 
 /*
  * Other function return 0 if found and placed in *r,
@@ -136,12 +136,12 @@ char *ncnf_get_attr(ncnf_obj *obj, char *opt_type);
  * NOTE: The ncnf_get_attr_int() function is specifically enhanced to process
  * boolean values, like "on", "off", "yes", "no", "true", "false".
  */
-int ncnf_get_attr_int(ncnf_obj *obj, char *type, int *r);
-long ncnf_get_attr_long(ncnf_obj *obj, char *type, long *r);
-int ncnf_get_attr_double(ncnf_obj *obj, char *type, double *r);
+int ncnf_get_attr_int(ncnf_obj *obj, const char *type, int *r);
+long ncnf_get_attr_long(ncnf_obj *obj, const char *type, long *r);
+int ncnf_get_attr_double(ncnf_obj *obj, const char *type, double *r);
 struct in_addr;	/* Forward declaration */
-int ncnf_get_attr_ip(ncnf_obj *obj, char *type, struct in_addr *r);
-int ncnf_get_attr_ipport(ncnf_obj *obj, char *type,
+int ncnf_get_attr_ip(ncnf_obj *obj, const char *type, struct in_addr *r);
+int ncnf_get_attr_ipport(ncnf_obj *obj, const char *type,
 	struct in_addr *rip, unsigned short *rhport /* Host order */);
 
 

@@ -65,11 +65,6 @@ void _ncnf_iter_rewind(struct ncnf_obj_s *iter);
 /*
  * Get attributes
  */
-char *_ncnf_get_attr(struct ncnf_obj_s *obj, char *type);
-
-int _ncnf_get_attr_int(struct ncnf_obj_s *obj, char *type, int *r);
-int _ncnf_get_attr_double(struct ncnf_obj_s *obj, char *type, double *r);
-int _ncnf_get_attr_ip(struct ncnf_obj_s *obj, char *type, struct in_addr *r);
-
+char *_ncnf_get_attr(struct ncnf_obj_s *obj, const char *type);
 
 #endif	/* __NCNF_WALK_H__ */
