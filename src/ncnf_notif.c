@@ -95,7 +95,7 @@ _ncnf_lazy_notificator(struct ncnf_obj_s *obj, const char *watchfor,
 	ln->notify = NULL;
 
 	/* Report detach to the old function */
-	if(ln->notify) {
+	if(old_notify) {
 		if(old_notify((ncnf_obj *)obj,
 			NCNF_NOTIF_DETACH, old_notify_key) == -1) {
 			ln->notify = old_notify;
@@ -177,7 +177,7 @@ _ncnf_check_lazy_filters(struct ncnf_obj_s *obj, int only_mark_value) {
 
 			if(_ncnf_real_object(child)->notify == NULL)
 				o->notify((ncnf_obj *)child, NCNF_OBJ_ADD,
-					child->notify_key);
+					o->notify_key);
 		}
 
 		/* Check attributes */
@@ -196,7 +196,7 @@ _ncnf_check_lazy_filters(struct ncnf_obj_s *obj, int only_mark_value) {
 
 			if(_ncnf_real_object(child)->notify == NULL)
 				o->notify((ncnf_obj *)child, NCNF_OBJ_ADD,
-					child->notify_key);
+					o->notify_key);
 		}
 
 	}
