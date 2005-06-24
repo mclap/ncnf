@@ -23,7 +23,7 @@ LDADD = libncnf.la
 check_coll_SOURCES = ncnf_coll.c
 check_coll_CFLAGS = -DMODULE_TEST
 
-include_HEADERS = ncnf.h ncnf_app.h
+include_HEADERS = ncnf.h ncnf_app.h bstr.h genhash.h
 nodist_include_HEADERS = ncnf_coll.h \
 	ncnf_int.h ncnf_walk.h ncnf_diff.h \
 	ncnf_notif.h ncnf_constr.h $(sf_includes)
