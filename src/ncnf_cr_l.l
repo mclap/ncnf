@@ -296,10 +296,9 @@ attach	{ return ATTACH; }
 
 <*><<EOF>>	{
 		while(YY_START) yy_pop_state();
-		yy_delete_buffer(yy_current_buffer);
-		yy_current_buffer = 0;
+		yy_delete_buffer(YY_CURRENT_BUFFER);
 		if(yy_start_stack) {
-			yy_flex_free(yy_start_stack);
+			yyfree(yy_start_stack);
 			yy_start_stack_ptr = 0;
 			yy_start_stack_depth = 0;
 			yy_start_stack = 0;
